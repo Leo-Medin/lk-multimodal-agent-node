@@ -13,6 +13,7 @@ import * as openai from '@livekit/agents-plugin-openai';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
@@ -30,26 +31,26 @@ export default defineAgent({
     const model = new openai.realtime.RealtimeModel({
       instructions: 'You are a helpful assistant with real-time web search. When a user asks for information, always use the webSearch function unless told otherwise.',
       voice: 'alloy',
-      model: 'tts-1', // not 'tts-1-hd' !
+      // model: 'tts-1', // Incorrect! it does not work with this model
       // model: 'gpt-4-1106-preview',
     });
 
     const fncCtx: llm.FunctionContext = {
-      // weather: {
-      //   description: 'Get the weather in a location',
-      //   parameters: z.object({
-      //     location: z.string().describe('The location to get the weather for'),
-      //   }),
-      //   execute: async ({ location }) => {
-      //     console.debug(`executing weather function for ${location}`);
-      //     const response = await fetch(`https://wttr.in/${location}?format=%C+%t`);
-      //     if (!response.ok) {
-      //       throw new Error(`Weather API returned status: ${response.status}`);
-      //     }
-      //     const weather = await response.text();
-      //     return `The weather in ${location} right now is ${weather}.`;
-      //   },
-      // },
+      weather: {
+        description: 'Get the weather in a location',
+        parameters: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          console.debug(`executing weather function for ${location}`);
+          const response = await fetch(`https://wttr.in/${location}?format=%C+%t`);
+          if (!response.ok) {
+            throw new Error(`Weather API returned status: ${response.status}`);
+          }
+          const weather = await response.text();
+          return `The weather in ${location} right now is ${weather}.`;
+        },
+      },
 
       webSearch: {
         description: "Search the web for information.",

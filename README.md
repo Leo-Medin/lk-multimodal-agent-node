@@ -1,4 +1,4 @@
-Voice assistant with OpenAI agent and enabled web search (backend).
+# Voice assistant with OpenAI agent and enabled web search (backend).
 
 Based example of a multimodal voice agent using LiveKit and the Node.js [Agents Framework](https://github.com/livekit/agents-js).
 

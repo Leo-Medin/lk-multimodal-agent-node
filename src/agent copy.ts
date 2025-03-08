@@ -31,8 +31,8 @@ export default defineAgent({
     const model = new openai.realtime.RealtimeModel({
       instructions: 'You are a helpful assistant with real-time web search. When a user asks for information, always use the webSearch function unless told otherwise.',
       voice: 'alloy',
-      model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings 
-      maxResponseOutputTokens: 1500
+      // model: 'tts-1', // Incorrect! it does not work with this model
+      // model: 'gpt-4-1106-preview',
     });
 
     const fncCtx: llm.FunctionContext = {
@@ -82,9 +82,7 @@ export default defineAgent({
   },
 });
 
-cli.runApp(new WorkerOptions({ 
-  agent: fileURLToPath(import.meta.url),
-}));
+cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));
 
 const searchWebGetSummary = async (query: string) => {
   // console.log('process.env.BRAVE_API_KEY:', process.env.BRAVE_API_KEY);

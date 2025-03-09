@@ -14,10 +14,30 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import fs from 'fs';
+import nodemailer from 'nodemailer'; // For email sending
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
 dotenv.config({ path: envPath });
+
+const companyInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'companyInfo.json'), 'utf-8'));
+
+const transporter = nodemailer.createTransport({
+  service: 'Yandex', // This automatically sets the right host and port
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("SMTP Connection Error:", error);
+  } else {
+    console.log("SMTP Connection Successful!");
+  }
+});
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
@@ -36,6 +56,57 @@ export default defineAgent({
     });
 
     const fncCtx: llm.FunctionContext = {
+      companyInfo: {
+        description: 'Retrieve company information (e.g., office hours, phone number, email, location, services).',
+        parameters: z.object({ query: z.string().describe('The specific company information requested.') }),
+        execute: async ({ query }) => {
+          return companyInfo[query] || 'I could not find that information. Please check the official website.';
+        },
+      },
+
+      bookAppointment: {
+        description: 'Book a car service appointment.',
+        parameters: z.object({
+          name: z.string().describe('Customer name'),
+          phoneNumber: z.string().describe('phoneNumber'),
+          carModel: z.string().describe('Car model'),
+          year: z.string().describe('Car year'),
+          // number: z.string().describe('Number'),
+          problem: z.string().describe('Issue description'),
+          date: z.string().describe('Preferred appointment date and time')
+        }),
+        execute: async ({ name, carModel, year, problem, date }) => {
+
+          const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.OFFICE_EMAIL,
+            subject: 'New Car Service Appointment',
+            text: `New appointment request:\n\nName: ${name}\nCar Model: ${carModel} (${year})\nProblem: ${problem}\nPreferred Date: ${date}`
+          };
+
+          await transporter.sendMail(mailOptions);
+          return 'Your appointment request has been sent to the office. They will contact you soon.';
+        }
+      },
+
+      getServicePrice: {
+        description: 'Retrieve the cost of a service.',
+        parameters: z.object({ service: z.string().describe('Service name') }),
+        execute: async ({ service }) => {
+          console.log('service:', service);
+
+          const priceData = JSON.parse(fs.readFileSync(path.join(__dirname, 'servicePrices.json'), 'utf-8'));
+
+          // If the requested service is a synonym, map it to the correct name
+          // if (priceData[service] && typeof priceData[service] === "string") {
+          //   service = priceData[service]; // Map synonym to correct name
+          //   console.log('service (2):', service);
+          // }
+
+          return priceData[service] ? `The cost of ${service} is ${priceData[service]}.` : 'Price information is not available.';
+        }
+      },
+
       weather: {
         description: 'Get the weather in a location',
         parameters: z.object({

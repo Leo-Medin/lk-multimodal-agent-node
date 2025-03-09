@@ -14,9 +14,15 @@ importers:
       '@livekit/agents-plugin-openai':
         specifier: ^0.7.3
         version: 0.7.3(@livekit/agents@0.6.0(@livekit/rtc-node@0.11.1))(@livekit/rtc-node@0.11.1)(zod@3.23.8)
+      '@types/nodemailer':
+        specifier: ^6.4.17
+        version: 6.4.17
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
+      nodemailer:
+        specifier: ^6.10.0
+        version: 6.10.0
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -544,6 +550,9 @@ packages:
 
   '@types/node@22.9.1':
     resolution: {integrity: sha512-p8Yy/8sw1caA8CdRIQBG5tiLHmxtQKObCijiAa9Ez+d4+PRffM4054xbju0msf+cvhJpnFEeNjxmVT/0ipktrg==}
+
+  '@types/nodemailer@6.4.17':
+    resolution: {integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==}
 
   '@typescript-eslint/eslint-plugin@8.15.0':
     resolution: {integrity: sha512-+zkm9AR1Ds9uLWN3fkoeXgFppaQ+uEVtfOV62dDmsy9QCNqlRHWNEck4yarvRNrvRcHQLGfqBNui3cimoz8XAg==}
@@ -1367,6 +1376,10 @@ packages:
     peerDependenciesMeta:
       encoding:
         optional: true
+
+  nodemailer@6.10.0:
+    resolution: {integrity: sha512-SQ3wZCExjeSatLE/HBaXS5vqUOQk6GtBdIIKxiFdmm01mOQZX/POJkO3SUX1wDiYcwUOJwT23scFSC9fY2H8IA==}
+    engines: {node: '>=6.0.0'}
 
   object-inspect@1.13.3:
     resolution: {integrity: sha512-kDCGIbxkDSXE3euJZZXzc6to7fCrKHNI/hSRQnRuQ+BWjFNzZwiFF8fj/6o2t2G9/jTj8PSIYTfCLelLZEeRpA==}
@@ -2218,6 +2231,10 @@ snapshots:
   '@types/node@22.9.1':
     dependencies:
       undici-types: 6.19.8
+
+  '@types/nodemailer@6.4.17':
+    dependencies:
+      '@types/node': 22.9.1
 
   '@typescript-eslint/eslint-plugin@8.15.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)':
     dependencies:
@@ -3151,6 +3168,8 @@ snapshots:
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
+
+  nodemailer@6.10.0: {}
 
   object-inspect@1.13.3: {}
 

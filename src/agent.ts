@@ -65,32 +65,82 @@ export default defineAgent({
       },
 
       bookAppointment: {
-        description: 'Book a car service appointment.',
+        description: `Book a car service appointment step by step. 
+        - If any details are missing (name, phone, car model, year, problem, date), ask the user for them one by one.
+        - Do not assume any details.
+        - Once all details are collected, read them back to the user and ask them to confirm.`,
         parameters: z.object({
-          name: z.string().describe('Customer name'),
-          phoneNumber: z.string().describe('phoneNumber'),
-          carModel: z.string().describe('Car model'),
-          year: z.string().describe('Car year'),
-          // number: z.string().describe('Number'),
-          problem: z.string().describe('Issue description'),
-          date: z.string().describe('Preferred appointment date and time')
+          name: z.string().optional().describe('Customer name (ask if missing)'),
+          phone: z.string().optional().describe('Customer phone number (ask if missing)'),
+          carModel: z.string().optional().describe('Car model (ask if missing)'),
+          year: z.string().optional().describe('Car year (ask if missing)'),
+          reason: z.string().optional().describe('Reason for visit (ask if missing)'),
+          date: z.string().optional().describe('Preferred appointment date (ask if missing)')
         }),
-        execute: async ({ name, carModel, year, problem, date }) => {
-
+        execute: async ({ name, phone, carModel, year, reason, date }) => {
+          let responseText;
+        
+          try {
+            let missingFields = [];
+        
+            if (!name) missingFields.push("your name");
+            if (!phone) missingFields.push("your phone number");
+            if (!carModel) missingFields.push("your car model");
+            if (!year) missingFields.push("the year of your car");
+            if (!reason) missingFields.push("why you are booking this service");
+            if (!date) missingFields.push("the preferred appointment date");
+        
+            if (missingFields.length > 0) {
+              responseText = `I need the following details to book your appointment: ${missingFields.join(", ")}. Please provide them one by one.`;
+            } else {
+              responseText = `Please confirm your appointment details:\n
+              - Name: ${name}
+              - Phone: ${phone}
+              - Car Model: ${carModel} (${year})
+              - Reason: ${reason}
+              - Preferred Date: ${date}\n
+              Say 'yes' to confirm or 'no' to modify the details.`;
+            }
+        
+            console.log("Response before sending:", responseText);
+            return responseText;
+          } catch (error) {
+            console.error("Error in bookAppointment:", error);
+            return "An error occurred while processing your request.";
+          }
+        }        
+      },
+            
+      confirmAppointment: {
+        description: 'Confirm the car service appointment before sending the email request. The user should say "yes" to proceed or "no" to modify details.',
+        parameters: z.object({
+          confirmation: z.string().describe('User confirmation response (yes or no)'),
+          name: z.string(),
+          phone: z.string(),
+          carModel: z.string(),
+          year: z.string(),
+          problem: z.string(),
+          date: z.string()
+        }),
+        execute: async ({ confirmation, name, phone, carModel, year, problem, date }) => {
+          if (confirmation.toLowerCase() !== 'yes') {
+            return 'Please provide the correct details to proceed with your appointment.';
+          }
+            
           const mailOptions = {
             from: process.env.EMAIL,
             to: process.env.OFFICE_EMAIL,
             subject: 'New Car Service Appointment',
-            text: `New appointment request:\n\nName: ${name}\nCar Model: ${carModel} (${year})\nProblem: ${problem}\nPreferred Date: ${date}`
+            text: `New appointment request:\n\nName: ${name}\nPhone: ${phone}\nCar Model: ${carModel} (${year})\nProblem: ${problem}\nPreferred Date: ${date}`
           };
-
+      
           await transporter.sendMail(mailOptions);
           return 'Your appointment request has been sent to the office. They will contact you soon.';
         }
       },
-
+      
       getServicePrice: {
-        description: 'Retrieve the cost of a service.',
+        description: 'Retrieve the cost of a car service. The service name must always be in English. If the user provides a request in another language, first translate it to English before passing it here. Available services include oil change, brake pad replacement, tire change, engine diagnostics, wheel alignment, battery replacement, and more.',
         parameters: z.object({ service: z.string().describe('Service name') }),
         execute: async ({ service }) => {
           console.log('service:', service);

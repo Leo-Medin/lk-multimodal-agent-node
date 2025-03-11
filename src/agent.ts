@@ -17,10 +17,6 @@ import { z } from 'zod';
 import fs from 'fs';
 import nodemailer from 'nodemailer'; // For email sending
 
-console.log("LIVEKIT_URL:", process.env.LIVEKIT_URL);
-console.log("LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY);
-console.log("LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET);
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
 dotenv.config({ path: envPath });

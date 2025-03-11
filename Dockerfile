@@ -17,13 +17,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # To force Railway to use env variables
-ARG LIVEKIT_URL
-ARG LIVEKIT_API_KEY
-ARG LIVEKIT_API_SECRET
-
-ENV LIVEKIT_URL=$LIVEKIT_URL
-ENV LIVEKIT_API_KEY=$LIVEKIT_API_KEY
-ENV LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET
+COPY .env /app/.env
+RUN export $(grep -v '^#' /app/.env | xargs)
 
 # Build the TypeScript code
 RUN pnpm build

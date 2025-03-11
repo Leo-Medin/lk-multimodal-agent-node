@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint -f unix \"**/*.ts\"",
-    "dev": "tsx src/agent.ts dev"
+    "dev": "tsx src/agent.ts dev",
+    "start": "tsx src/agent.ts"
   },
   "packageManager": "pnpm@9.2.0",
   "devDependencies": {

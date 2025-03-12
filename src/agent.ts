@@ -49,7 +49,7 @@ export default defineAgent({
     console.log(`starting assistant example agent for ${participant.identity}`);
     
     const model = new openai.realtime.RealtimeModel({
-      instructions: 'You are a helpful assistant with real-time web search. When a user asks for information, always use the webSearch function unless told otherwise.',
+      instructions: 'You are a helpful assistant for "Autolife car services" company.',
       voice: 'alloy',
       model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings 
       maxResponseOutputTokens: 1500
@@ -60,6 +60,7 @@ export default defineAgent({
         description: 'Retrieve company information (e.g., office hours, phone number, email, location, services).',
         parameters: z.object({ query: z.string().describe('The specific company information requested.') }),
         execute: async ({ query }) => {
+          console.log('companyInfo query:', query);
           return companyInfo[query] || 'I could not find that information. Please check the official website.';
         },
       },
@@ -72,8 +73,10 @@ export default defineAgent({
         parameters: z.object({
           name: z.string().optional().describe('Customer name (ask if missing)'),
           phone: z.string().optional().describe('Customer phone number (ask if missing)'),
-          carModel: z.string().optional().describe('Car model (ask if missing)'),
-          year: z.string().optional().describe('Car year (ask if missing)'),
+          // carModel: z.string().optional().describe('Car model (ask if missing)'),
+          carModel: z.string().min(2).max(30).describe("Car model (exact input, no auto-correct)."),
+          // year: z.string().optional().describe('Car year (ask if missing)'),
+          year: z.string().regex(/^\d{4}$/).describe("Car manufacturing year (must be exactly 4 digits)."),
           reason: z.string().optional().describe('Reason for visit (ask if missing)'),
           date: z.string().optional().describe('Preferred appointment date (ask if missing)')
         }),
@@ -123,6 +126,7 @@ export default defineAgent({
           date: z.string()
         }),
         execute: async ({ confirmation, name, phone, carModel, year, problem, date }) => {
+          console.log('confirmAppointment() confirmation.toLowerCase():', confirmation.toLowerCase());
           if (confirmation.toLowerCase() !== 'yes') {
             return 'Please provide the correct details to proceed with your appointment.';
           }
@@ -143,7 +147,7 @@ export default defineAgent({
         description: 'Retrieve the cost of a car service. The service name must always be in English. If the user provides a request in another language, first translate it to English before passing it here. Available services include oil change, brake pad replacement, tire change, engine diagnostics, wheel alignment, battery replacement, and more.',
         parameters: z.object({ service: z.string().describe('Service name') }),
         execute: async ({ service }) => {
-          console.log('service:', service);
+          console.log('getServicePrice() service:', service);
 
           const priceData = JSON.parse(fs.readFileSync(path.join(__dirname, 'servicePrices.json'), 'utf-8'));
 
@@ -157,21 +161,21 @@ export default defineAgent({
         }
       },
 
-      weather: {
-        description: 'Get the weather in a location',
-        parameters: z.object({
-          location: z.string().describe('The location to get the weather for'),
-        }),
-        execute: async ({ location }) => {
-          console.debug(`executing weather function for ${location}`);
-          const response = await fetch(`https://wttr.in/${location}?format=%C+%t`);
-          if (!response.ok) {
-            throw new Error(`Weather API returned status: ${response.status}`);
-          }
-          const weather = await response.text();
-          return `The weather in ${location} right now is ${weather}.`;
-        },
-      },
+      // weather: {
+      //   description: 'Get the weather in a location',
+      //   parameters: z.object({
+      //     location: z.string().describe('The location to get the weather for'),
+      //   }),
+      //   execute: async ({ location }) => {
+      //     console.debug(`executing weather function for ${location}`);
+      //     const response = await fetch(`https://wttr.in/${location}?format=%C+%t`);
+      //     if (!response.ok) {
+      //       throw new Error(`Weather API returned status: ${response.status}`);
+      //     }
+      //     const weather = await response.text();
+      //     return `The weather in ${location} right now is ${weather}.`;
+      //   },
+      // },
 
       webSearch: {
         description: "Search the web for information.",

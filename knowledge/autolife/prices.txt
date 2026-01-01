@@ -1,0 +1,5 @@
+Autolife — Price List (EUR)
+# service | price | notes
+Car wash basic | 10 | exterior only
+Car wash premium | 18 | exterior + interior
+Interior detailing | 80-120 | depends on size

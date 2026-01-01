@@ -9,12 +9,17 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import fs from 'fs';
 import nodemailer from 'nodemailer'; // For email sending
+import { loadTenantTxtKnowledge, searchDocs } from "./docSearchLib";
+
+const tenantId = 'autolife'; // MVP
+const index = loadTenantTxtKnowledge({
+  tenantId,
+  folderPath: process.env.KNOWLEDGE_DIR ?? './knowledge/autolife',
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
 dotenv.config({ path: envPath });
-
-const companyInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'companyInfo.json'), 'utf-8'));
 
 const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port
@@ -40,37 +45,60 @@ export default defineAgent({
     console.log('waiting for participant');
     const participant = await ctx.waitForParticipant();
     console.log(`starting assistant example agent for ${participant.identity}`);
-    
+
+    const BASE_INSTRUCTIONS = 'You are the voice assistant for Autolife car services.\n' +
+    'Default to concise answers: 1–2 sentences, under ~15 seconds of speech.\n' +
+    'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
+    'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
+    'If you are not sure, do not guess—ask or use tools.\n' +
+    'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
+    'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.';
+
     const model = new openai.realtime.RealtimeModel({
-      instructions: 'You are a helpful assistant for "Autolife car services" company.',
+      instructions: BASE_INSTRUCTIONS,
       voice: 'alloy',
       // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
       model: 'gpt-realtime-mini',
-      maxResponseOutputTokens: 1500
+      maxResponseOutputTokens: 350 // about 15s answer
     });
 
     const fncCtx: llm.FunctionContext = {
-      companyInfo: {
+      searchDocs: {
         description: 'Retrieve company information (e.g., office hours, phone number, email, location, services).',
         parameters: z.object({ query: z.string().describe('The specific company information requested.') }),
         execute: async ({ query }) => {
-          console.log('companyInfo query:', query);
-          return companyInfo[query] || 'I could not find that information. Please check the official website.';
+          const results = searchDocs({ index, query, topK: 3 });
+
+          if (results.length === 0) {
+            return JSON.stringify({
+              found: false,
+              message: "I couldn't find this in the provided documents. Do you want prices, location, opening hours, or services?",
+            });
+          }
+
+          return JSON.stringify({
+            found: true,
+            passages: results.map(r => ({
+              text: r.text,
+              source: `Source: ${r.title} — ${r.sourceFile}`,
+              chunkId: r.chunkId,
+            })),
+          });
         },
       },
 
       bookAppointment: {
         description: `Book a car service appointment step by step. 
-        - If any details are missing (name, phone, car model, year, problem, date), ask the user for them one by one.
+        - If any details are missing (name, phone, car model, year, reason, date), ask the user for them one by one.
         - Do not assume any details.
         - Once all details are collected, read them back to the user and ask them to confirm.`,
         parameters: z.object({
           name: z.string().optional().describe('Customer name (ask if missing)'),
           phone: z.string().optional().describe('Customer phone number (ask if missing)'),
-          // carModel: z.string().optional().describe('Car model (ask if missing)'),
-          carModel: z.string().min(2).max(30).describe("Car model (exact input, no auto-correct)."),
-          // year: z.string().optional().describe('Car year (ask if missing)'),
-          year: z.string().regex(/^\d{4}$/).describe("Car manufacturing year (must be exactly 4 digits)."),
+          carModel: z.string().optional().describe('Car model (ask if missing)'),
+          // carModel: z.string().min(2).max(30).describe("Car model (exact input, no auto-correct)."),
+          year: z.string().optional().describe('Car year (ask if missing)'),
+          // year: z.string().regex(/^\d{4}$/).describe("Car manufacturing year (must be exactly 4 digits)."),
           reason: z.string().optional().describe('Reason for visit (ask if missing)'),
           date: z.string().optional().describe('Preferred appointment date (ask if missing)')
         }),
@@ -88,7 +116,8 @@ export default defineAgent({
             if (!date) missingFields.push("the preferred appointment date");
         
             if (missingFields.length > 0) {
-              responseText = `I need the following details to book your appointment: ${missingFields.join(", ")}. Please provide them one by one.`;
+              // responseText = `I need the following details to book your appointment: ${missingFields.join(", ")}. Please provide them one by one.`;
+              responseText = `To book the appointment, what is ${missingFields[0]}?`;
             } else {
               responseText = `Please confirm your appointment details:\n
               - Name: ${name}
@@ -116,10 +145,10 @@ export default defineAgent({
           phone: z.string(),
           carModel: z.string(),
           year: z.string(),
-          problem: z.string(),
+          reason: z.string(),
           date: z.string()
         }),
-        execute: async ({ confirmation, name, phone, carModel, year, problem, date }) => {
+        execute: async ({ confirmation, name, phone, carModel, year, reason, date }) => {
           console.log('confirmAppointment() confirmation.toLowerCase():', confirmation.toLowerCase());
           if (confirmation.toLowerCase() !== 'yes') {
             return 'Please provide the correct details to proceed with your appointment.';
@@ -129,58 +158,50 @@ export default defineAgent({
             from: process.env.EMAIL,
             to: process.env.OFFICE_EMAIL,
             subject: 'New Car Service Appointment',
-            text: `New appointment request:\n\nName: ${name}\nPhone: ${phone}\nCar Model: ${carModel} (${year})\nProblem: ${problem}\nPreferred Date: ${date}`
+            text: `New appointment request:\n\nName: ${name}\nPhone: ${phone}\nCar Model: ${carModel} (${year})\nReason: ${reason}\nPreferred Date: ${date}`
           };
       
           await transporter.sendMail(mailOptions);
           return 'Your appointment request has been sent to the office. They will contact you soon.';
         }
       },
-      
-      getServicePrice: {
-        description: 'Retrieve the cost of a car service. The service name must always be in English. If the user provides a request in another language, first translate it to English before passing it here. Available services include oil change, brake pad replacement, tire change, engine diagnostics, wheel alignment, battery replacement, and more.',
-        parameters: z.object({ service: z.string().describe('Service name') }),
-        execute: async ({ service }) => {
-          console.log('getServicePrice() service:', service);
 
-          const priceData = JSON.parse(fs.readFileSync(path.join(__dirname, 'servicePrices.json'), 'utf-8'));
-
-          // If the requested service is a synonym, map it to the correct name
-          // if (priceData[service] && typeof priceData[service] === "string") {
-          //   service = priceData[service]; // Map synonym to correct name
-          //   console.log('service (2):', service);
-          // }
-
-          return priceData[service] ? `The cost of ${service} is ${priceData[service]}.` : 'Price information is not available.';
-        }
-      },
-
-      webSearch: {
-        description: "Search the web for information.",
-        parameters: { query: "string" },
-        execute: async ({ query }: { query: string }) => {
-          console.log(`🔍 Web Search Triggered for Query: ${query}`);
-          try {
-            return await searchWebGetSummary(query)
-          } catch (error) {
-            console.log(`Error fetching search results: ${(error as Error).message}`);
-            return `Error fetching search results: ${(error as Error).message}`;
-          }
-        },
-      },
-      
     };
     const agent = new multimodal.MultimodalAgent({ model, fncCtx });
     const session = await agent
       .start(ctx.room, participant)
       .then((session) => session as openai.realtime.RealtimeSession);
-    
-    session.conversation.item.create(llm.ChatMessage.create({
-      role: llm.ChatRole.ASSISTANT,
-      text: 'How can I help you today?',
-    }));
 
-    session.response.create();
+    // at session start
+    let greeted = false;
+    let userSpoke = false;
+
+    const greetTimer = setTimeout(() => {
+      if (greeted || userSpoke) return;
+      greeted = true;
+
+      session.conversation.item.create(
+        llm.ChatMessage.create({
+          role: llm.ChatRole.SYSTEM,
+          text:
+            'The user has been silent since the conversation started. ' +
+            'Greet the user with EXACTLY one short sentence: "Hi! How can I help you?" ' +
+            'Do not ask for booking details. Do not mention appointments unless the user asks. ' +
+            'Do not add any other text.',
+        })
+      );
+
+      session.response.create(); // first message from agent right from the start
+
+    }, 3000);
+
+    // Cancel greeting immediately when user starts speaking (best low-latency signal)
+    session.on("openai_server_event_received", (ev: any) => {
+      if (ev?.type === "input_audio_buffer.speech_started") {
+        userSpoke = true;
+        clearTimeout(greetTimer);
+      }
+    });
 
   },
 });

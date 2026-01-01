@@ -1,14 +1,7 @@
 // SPDX-FileCopyrightText: 2024 LiveKit, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
-import {
-  type JobContext,
-  WorkerOptions,
-  cli,
-  defineAgent,
-  llm,
-  multimodal,
-} from '@livekit/agents';
+import { type JobContext, WorkerOptions, cli, defineAgent, llm, multimodal } from '@livekit/agents';
 import * as openai from '@livekit/agents-plugin-openai';
 import dotenv from 'dotenv';
 import path from 'node:path';
@@ -27,15 +20,15 @@ const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port
   auth: {
     user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
 });
 
 transporter.verify((error, success) => {
   if (error) {
-    console.error("SMTP Connection Error:", error);
+    console.error('SMTP Connection Error:', error);
   } else {
-    console.log("SMTP Connection Successful!");
+    console.log('SMTP Connection Successful! ' + success);
   }
 });
 
@@ -51,7 +44,8 @@ export default defineAgent({
     const model = new openai.realtime.RealtimeModel({
       instructions: 'You are a helpful assistant for "Autolife car services" company.',
       voice: 'alloy',
-      model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings 
+      // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
+      model: 'gpt-realtime-mini',
       maxResponseOutputTokens: 1500
     });
 
@@ -160,22 +154,6 @@ export default defineAgent({
           return priceData[service] ? `The cost of ${service} is ${priceData[service]}.` : 'Price information is not available.';
         }
       },
-
-      // weather: {
-      //   description: 'Get the weather in a location',
-      //   parameters: z.object({
-      //     location: z.string().describe('The location to get the weather for'),
-      //   }),
-      //   execute: async ({ location }) => {
-      //     console.debug(`executing weather function for ${location}`);
-      //     const response = await fetch(`https://wttr.in/${location}?format=%C+%t`);
-      //     if (!response.ok) {
-      //       throw new Error(`Weather API returned status: ${response.status}`);
-      //     }
-      //     const weather = await response.text();
-      //     return `The weather in ${location} right now is ${weather}.`;
-      //   },
-      // },
 
       webSearch: {
         description: "Search the web for information.",

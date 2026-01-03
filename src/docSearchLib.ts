@@ -175,7 +175,7 @@ export function loadTenantTxtKnowledge(params: {
     const txt = fs.readFileSync(full, 'utf8');
     chunks.push(...parseTxtToChunks(txt, { tenantId, sourceFile: full }));
   }
-  console.log('chunks:', chunks);
+  // console.log('chunks:', chunks);
 
   return { tenantId, chunks };
 }

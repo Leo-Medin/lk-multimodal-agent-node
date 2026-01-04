@@ -38,7 +38,7 @@ transporter.verify((error, success) => {
   }
 });
 
-type Lang = 'en' | 'ru' | 'el';
+type Lang = 'en' | 'ru' | 'el' | undefined;
 
 function detectLangFromText(text: string): Lang {
   const t = (text ?? '').trim();
@@ -73,7 +73,7 @@ export default defineAgent({
     console.log('waiting for participant');
     const participant = await ctx.waitForParticipant();
     console.log(`starting assistant example agent for ${participant.identity}`);
-    let lastUserLang: string | undefined;
+    let lastUserLang: Lang;
 
     const BASE_INSTRUCTIONS =
       'You are the voice assistant for Autolife car services.\n' +
@@ -229,35 +229,16 @@ export default defineAgent({
 
     const rtSession = await agent.start(ctx.room, participant);
 
-    rtSession.on('input_speech_transcription_completed', (ev: any) => {
-      const transcript = (ev?.transcript ?? '').trim();
+    rtSession.on('input_speech_transcription_completed', (ev: unknown) => {
+      const e = ev as { transcript?: string; itemId?: string }; // narrow to expected shape
+      if (!e?.transcript) return;
+
+      const transcript = e.transcript.trim();
       if (!transcript) return;
 
       lastUserLang = detectLangFromText(transcript);
       console.log('lastUserLang updated:', lastUserLang, 'from:', transcript);
     });
-
-    // at session start
-    // let greeted = false;
-    // let userSpoke = false;
-    //
-    // const greetTimer = setTimeout(() => {
-    //   if (greeted || userSpoke) return;
-    //   greeted = true;
-    //
-    //   session.conversation.item.create(
-    //     llm.ChatMessage.create({
-    //       role: llm.ChatRole.SYSTEM,
-    //       text:
-    //         'The user has been silent since the conversation started. ' +
-    //         'Greet the user with EXACTLY one short sentence: "Hi! How can I help you?" ' +
-    //         'Do not ask for booking details. Do not mention appointments unless the user asks. ' +
-    //         'Do not add any other text.',
-    //     }),
-    //   );
-    //
-    //   session.response.create(); // first message from agent right from the start
-    // }, 3000);
   },
 });
 

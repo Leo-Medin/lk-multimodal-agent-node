@@ -73,7 +73,7 @@ export default defineAgent({
     console.log('waiting for participant');
     const participant = await ctx.waitForParticipant();
     console.log(`starting assistant example agent for ${participant.identity}`);
-    let lastUserLang = 'en';
+    let lastUserLang: string | undefined;
 
     const BASE_INSTRUCTIONS =
       'You are the voice assistant for Autolife car services.\n' +
@@ -108,6 +108,9 @@ export default defineAgent({
             ),
         }),
         execute: async ({ query }) => {
+          if (!lastUserLang) {
+            await new Promise((r) => setTimeout(r, 500)); // wait for user query transcription arrive and set the language
+          }
           const userLang = lastUserLang; // use session state
           console.log('lastUserLang:', userLang, 'toolQuery:', query);
 

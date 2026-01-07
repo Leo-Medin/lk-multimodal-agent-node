@@ -40,6 +40,72 @@ transporter.verify((error, success) => {
 
 type Lang = 'en' | 'ru' | 'el' | undefined;
 
+// --- Phone validation helpers ---
+function normalizePhone(input: string): string {
+  // Remove spaces, dashes, parentheses
+  return input.replace(/[^\d+]/g, '');
+}
+
+function isValidCyLocalPhone(input: string): boolean {
+  const phone = normalizePhone(input);
+  return /^[0-9]{8}$/.test(phone);
+}
+
+function isValidE164(input: string): boolean {
+  const phone = normalizePhone(input);
+  return /^\+[1-9][0-9]{7,14}$/.test(phone);
+}
+
+function isValidPhone(input: string): boolean {
+  return isValidCyLocalPhone(input) || isValidE164(input);
+}
+
+function phoneInvalidPrompt(lang: 'en' | 'ru' | 'el'): string {
+  const messages = {
+    en: 'The phone number format is invalid. Please provide 8 digits for Cyprus local numbers or a valid E.164 international number starting with +.',
+    el: 'Η μορφή του αριθμού τηλεφώνου δεν είναι έγκυρη. Δώστε 8 ψηφία για αριθμό Κύπρου ή έγκυρο διεθνή αριθμό E.164 που ξεκινά με +.',
+    ru: 'Формат номера телефона недействителен. Укажите 8 цифр для местного номера Кипра или корректный международный номер в формате E.164, начиная с +.',
+  };
+  return messages[lang];
+}
+
+function formatCyLocalForSpeech(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (!/^\d{8}$/.test(digits)) return input;
+
+  const a = digits.slice(0, 2);
+  const b = digits.slice(2, 5);
+  const c = digits.slice(5, 8);
+
+  // Non-breaking spaces reduce “auto-hyphenation” by TTS/LLM
+  const nbsp = '\u00A0';
+  return `${a}${nbsp}${b}${nbsp}${c}`;
+}
+
+function formatPhoneForSpeech(input: string): string {
+  const normalized = normalizePhone(input);
+
+  // CY local: speak grouped 2-3-3
+  if (isValidCyLocalPhone(normalized)) {
+    return formatCyLocalForSpeech(normalized);
+  }
+
+  // E.164: generally best spoken as-is; optional: add spaces after country code if you want later
+  if (isValidE164(normalized)) {
+    return normalized;
+  }
+
+  return input;
+}
+
+function confirmHeader(lang: 'en' | 'ru' | 'el'): string {
+  return {
+    en: 'Please confirm your appointment details:',
+    ru: 'Подтвердите, пожалуйста, данные записи:',
+    el: 'Παρακαλώ επιβεβαιώστε τα στοιχεία ραντεβού:',
+  }[lang];
+}
+
 function detectLangFromText(text: string): Lang {
   const t = (text ?? '').trim();
   if (!t) return 'en';
@@ -77,13 +143,13 @@ export default defineAgent({
 
     const BASE_INSTRUCTIONS =
       'You are the voice assistant for Autolife car services.\n' +
-      // 'You may respond ONLY in these languages: English, Greek, Russian.\n' +
-      // 'If user speaks a different language, ask them to switch back to one of the supported languages.\n' +
       'Always respond in the language used by the user’s most recent message (English, Greek, or Russian). If the user’s message is in another language, ask them to switch to one of the supported languages.\n' +
+      'Recognize names correctly (e.g., Пётр/Петр, Πέτρος, Peter). \n' +
+      'When user says digits as words, output exact digits. For phone numbers, keep all digits in order; do not drop digits. Do NOT convert local 8-digit numbers to international E.164 format.\n' +
       'Default to concise answers: 1–2 sentences, under ~15 seconds of speech.\n' +
       'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
       'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
-      'If you are not sure, do not guess—ask or use tools.\n' +
+      'If you are not sure, do not guess — ask or use tools.\n' +
       'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
       'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.\n' +
       'When a tool returns "respondIn", you MUST write your final answer in that language.';
@@ -93,7 +159,7 @@ export default defineAgent({
       voice: 'alloy',
       // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
       model: 'gpt-realtime-mini',
-      maxResponseOutputTokens: 350, // about 15s answer
+      maxResponseOutputTokens: 400, // about 15s-20s answer
     });
 
     const fncCtx: llm.FunctionContext = {
@@ -145,6 +211,7 @@ export default defineAgent({
         description: `Book a car service appointment step by step. 
         - If any details are missing (name, phone, car model, year, reason, date), ask the user for them one by one.
         - Do not assume any details.
+        - For phone numbers, use exactly what the user provides. Do NOT format as E.164 if they provide a local 8-digit number.
         - Once all details are collected, read them back to the user and ask them to confirm.`,
         parameters: z.object({
           name: z.string().optional().describe('Customer name (ask if missing)'),
@@ -164,6 +231,9 @@ export default defineAgent({
 
             if (!name) missingFields.push('your name');
             if (!phone) missingFields.push('your phone number');
+            if (phone && !isValidPhone(phone)) {
+              return phoneInvalidPrompt(lastUserLang ?? 'en');
+            }
             if (!carModel) missingFields.push('your car model');
             if (!year) missingFields.push('the year of your car');
             if (!reason) missingFields.push('why you are booking this service');
@@ -173,9 +243,9 @@ export default defineAgent({
               // responseText = `I need the following details to book your appointment: ${missingFields.join(", ")}. Please provide them one by one.`;
               responseText = `To book the appointment, what is ${missingFields[0]}?`;
             } else {
-              responseText = `Please confirm your appointment details:\n
+              responseText = `${confirmHeader(lastUserLang ?? 'en')}\n
               - Name: ${name}
-              - Phone: ${phone}
+              - Phone: ${formatPhoneForSpeech(phone)}
               - Car Model: ${carModel} (${year})
               - Reason: ${reason}
               - Preferred Date: ${date}\n
@@ -211,12 +281,15 @@ export default defineAgent({
           if (confirmation.toLowerCase() !== 'yes') {
             return 'Please provide the correct details to proceed with your appointment.';
           }
+          if (!isValidPhone(phone)) {
+            return phoneInvalidPrompt(lastUserLang ?? 'en');
+          }
 
           const mailOptions = {
             from: process.env.EMAIL,
             to: process.env.OFFICE_EMAIL,
             subject: 'New Car Service Appointment',
-            text: `New appointment request:\n\nName: ${name}\nPhone: ${phone}\nCar Model: ${carModel} (${year})\nReason: ${reason}\nPreferred Date: ${date}`,
+            text: `New appointment request:\n\nName: ${name}\nPhone: ${formatPhoneForSpeech(phone)}\nCar Model: ${carModel} (${year})\nReason: ${reason}\nPreferred Date: ${date}`,
           };
 
           await transporter.sendMail(mailOptions);

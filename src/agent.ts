@@ -140,7 +140,11 @@ const BASE_INSTRUCTIONS =
   'Always respond in the language used by the user’s most recent message (English, Greek, or Russian). If the user’s message is in another language, ask them to switch to one of the supported languages.\n' +
   'Recognize names correctly (e.g., Пётр/Петр, Πέτρος, Peter). \n' +
   'When user says digits as words, output exact digits. For phone numbers, keep all digits in order; do not drop digits. Do NOT convert local 8-digit numbers to international E.164 format.\n' +
-  'Default to concise answers: 1–2 sentences, under ~15 seconds of speech.\n' +
+  // 'Default to concise answers: 1–2 sentences, under ~15 seconds of speech. If your answer is longer than 20 words, cut it and ask user if they want to know more.\n' +
+  'VERBAL RESPONSE RULES:\n' +
+  '- Be extremely concise: 1–2 sentences max.\n' +
+  '- If the answer involves a long list, summarize it in under 20 words and ask if the user wants more details.\n' +
+  '- Do NOT apply these length constraints to tool calls; only to your final speech.\n' +
   'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
   'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
   'If you are not sure, do not guess — ask or use tools.\n' +
@@ -153,7 +157,7 @@ const model = new openai.realtime.RealtimeModel({
   voice: 'alloy',
   // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
   model: 'gpt-realtime-mini',
-  maxResponseOutputTokens: 400, // about 15s-20s answer
+  maxResponseOutputTokens: 500, // about 30s answer
 });
 
 export default defineAgent({
@@ -211,7 +215,7 @@ export default defineAgent({
               chunkId: r.chunkId,
             })),
           };
-          // console.log('resultToReturn:', resultToReturn);
+          // console.log('searchDocs result:', resultToReturn);
           return JSON.stringify(resultToReturn);
         },
       },

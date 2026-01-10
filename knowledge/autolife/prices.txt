@@ -1,5 +1,211 @@
 Autolife — Price List (EUR)
 # service | price | notes
+
+# --- GENERAL MAINTENANCE (All Makes) ---
+Safety Inspection (Basic) | 45 | 25-point visual check
+Safety Inspection (Full) | 85 | 100-point check with report
+Pre-Purchase Inspection | 130 | Detailed report + road test
+Emissions Test | 40 | Official certification
+Engine Oil Analysis | 65 | Lab report on engine wear
+Winter Readiness Check | 55 | Battery, fluids, tires, wipers
+Summer Prep Check | 55 | AC, cooling system, tires
+Battery Health Test | 20 | Free if battery purchased here
+Fluid Top-up Service | 15 | Washer fluid, coolant, power steering
+
+# --- EUROPEAN BRANDS (VW, Skoda, Peugeot, Renault, Fiat, Opel) ---
+Oil Change | 95 | 5W-30 Synthetic (up to 5L)
+Brake Pads Front | 125 | OE-equivalent parts
+Brake Pads Rear | 110 | OE-equivalent parts
+Brake Discs Front | 270 | Pair, including labor
+Brake Discs Rear | 230 | Pair, including labor
+Timing Belt Kit | 480 | Includes tensioners
+Water Pump (with belt) | 120 | Additional to timing belt
+Clutch Kit | 650 | Manual 5/6 speed
+Dual-Mass Flywheel | 550 | Parts only
+Alternator | 320 | Rebuilt/New exchange
+Starter Motor | 240 | Parts + Labor
+Shock Absorber Front | 160 | Per side
+Shock Absorber Rear | 130 | Per side
+Wheel Bearing Front | 145 | Per side
+Control Arm Front | 180 | Upper or Lower
+Tie Rod End | 75 | Per side
+Spark Plugs (4-cyl) | 80 | Platinum
+Ignition Coil | 65 | Per cylinder
+Fuel Filter (Diesel) | 60 |
+Air Filter | 30 |
+Cabin Filter (Carbon) | 35 |
+Thermostat | 90 | Includes housing
+Radiator | 280 | Parts + Labor
+Wiper Blades | 45 | Set of 2 (Bosch/Valeo)
+Diagnostic Scan | 45 | VAG/PSA/OBD2
+
+# --- EUROPEAN PREMIUM (BMW, Mercedes, Audi, Volvo, Porsche, Land Rover) ---
+Oil Change | 170 | 0W-30 Long-Life + OEM filter
+Brake Pads Front | 220 | Low-dust ceramic
+Brake Pads Rear | 190 | Low-dust ceramic
+Brake Discs Front | 520 | High-carbon / Vented pair
+Brake Discs Rear | 440 | Pair
+Air Suspension Strut | 850 | Per side (OEM-spec)
+Compressor (Air Susp) | 600 | Parts + Labor
+Transmission Flush (ZF) | 480 | Full fluid exchange + filter
+Spark Plugs (6-cyl) | 190 | Laser Iridium
+Spark Plugs (8-cyl) | 260 | Laser Iridium
+Ignition Coil | 95 | Per cylinder (Bosch/NGK)
+Valve Cover Gasket | 350 | Includes specialized labor
+Turbocharger Service | 1200+ | Subject to inspection
+Fuel Injector (Diesel) | 380 | Per injector
+Oxygen Sensor | 160 | Wideband sensors
+AdBlue Pump | 450 |
+NOX Sensor | 550 | Common for Euro 6 engines
+Wheel Bearing | 240 | Press-in hub unit
+Control Arm Kit Front | 750 | Full multi-link refresh
+Drive Belt + Tensioner | 210 |
+Water Pump (Electric) | 420 | Common on BMW/Audi
+Steering Rack (Electronic) | 1500+ | Coding required
+Sunroof Service | 110 | Cleaning + Lubrication
+ECU Coding | 120 | Per module
+Key Fob Programming | 150 | Plus cost of key
+
+# --- JAPANESE BRANDS (Toyota, Honda, Mazda, Nissan, Subaru, Suzuki) ---
+Oil Change | 85 | 0W-20 Synthetic
+Brake Pads Front | 115 | Akebono or similar
+Brake Pads Rear | 100 |
+Brake Discs Front | 240 | Pair
+CV Axle (Front) | 260 | Per side
+Hybrid Battery Test | 65 | Cell health report
+Hybrid Cooling Fan Clean | 80 | Prevents battery overheat
+CVT Fluid Exchange | 180 | Genuine fluid only
+Differential Fluid | 85 | Rear diff (AWD)
+Transfer Case Fluid | 75 | 4WD/AWD
+Valve Adjustment | 160 | Mechanical lifter types
+Ignition Coil | 75 | Per cylinder
+Spark Plugs (4-cyl) | 90 | Denso Iridium
+Wheel Bearing (Hub) | 180 | Per side
+Serpentine Belt | 65 |
+Power Steering Pump | 310 | Hydraulic types
+Knock Sensor | 140 |
+O2 Sensor | 130 |
+Radiator Hose Set | 90 |
+Sway Bar Links | 80 | Pair
+Engine Mount | 150 | Per mount
+Fuel Pump (In-tank) | 290 |
+AC Compressor | 550 |
+
+# --- KOREAN BRANDS (Hyundai, Kia) ---
+Oil Change | 80 | 5W-30 Synthetic
+Brake Pads Front | 105 |
+Brake Pads Rear | 95 |
+GDI Intake Cleaning | 150 | Walnut blasting/Chemical
+DCT Clutch Calibration | 90 | Software reset
+Timing Chain Check | 70 | Visual + tensioner check
+Ignition Coil Set | 170 | Set of 4
+Spark Plugs | 75 |
+Steering Coupler | 120 | Common "click" fix
+Wheel Bearing | 155 |
+Control Arm | 140 |
+Cabin Filter | 25 |
+Engine Air Filter | 25 |
+Crankshaft Sensor | 110 |
+Camshaft Sensor | 110 |
+Thermostat | 85 |
+Brake Caliper Front | 180 | Per side
+Brake Caliper Rear | 165 |
+Shock Absorbers | 280 | Pair (Front or Rear)
+
+# --- CHINESE BRANDS (MG, BYD, Geely, Chery, Haval, GWM) ---
+Oil Change | 80 | 5W-30
+Brake Pads Front | 115 |
+Brake Pads Rear | 105 |
+Infotainment Update | 70 | Firmware/Map updates
+EV Battery Health Check | 85 | Diagnostic report
+EV Coolant Change | 140 | Specialized dielectric coolant
+Diagnostic Scan | 55 | Specific protocols
+Spare Part Surcharge | 30 | For non-stocked items
+12V Battery (AGM) | 210 |
+Door Handle Repair | 130 | Common electronic issue
+Charging Port Lock | 180 | Motor replacement
+Parking Sensor | 95 | Per sensor
+Reverse Camera | 160 | Part + Labor
+
+# --- AMERICAN BRANDS (Ford, Chevrolet, Jeep, Dodge, Tesla, Cadillac) ---
+Oil Change | 95 | High-capacity (V6/V8)
+Brake Pads Front | 145 | Heavy-duty / Towing spec
+Brake Pads Rear | 130 |
+Suspension Lift Kit | 500+ | Labor only
+TPMS Sensor Sync | 40 | All 4 wheels
+Transmission Cooler | 280 | External unit
+Transfer Case Service | 110 | 4x4 fluids
+Differential Service | 95 |
+Spark Plugs (V8) | 220 | Set of 8
+Ignition Coil (V8) | 500 | Set of 8
+Wheel Hub Assembly | 240 | Heavy duty (F-150/RAM)
+Upper Control Arm | 190 |
+Power Steering Line | 120 |
+Fuel Injector (V8) | 150 | Per injector
+Tesla Cabin Filter | 65 | Model 3/Y
+Tesla HEPA Filter | 140 | Model S/X Bio-defense
+Jeep Soft Top Adjustment | 90 |
+
+# --- TIRES, WHEELS & ALIGNMENT ---
+Tire Swap (13"-15") | 50 | Set of 4, mount/balance
+Tire Swap (16"-18") | 70 | Set of 4, mount/balance
+Tire Swap (19"-21") | 90 | Set of 4, mount/balance
+Tire Swap (22"+) | 120 | Set of 4, mount/balance
+Run-flat Tire Mounting | +30 | Surcharge for set
+Wheel Alignment (Front Toe) | 55 |
+Wheel Alignment (4-Wheel Full) | 95 |
+Wheel Alignment (Premium/Sport) | 140 | Includes camber/caster
+Wheel Balancing (High-speed) | 40 | Set of 4
+Puncture Repair (Standard) | 25 | Internal patch
+Puncture Repair (Run-flat) | 45 | Subject to inspection
+TPMS Sensor Replacement | 65 | Part + Coding
+Wheel Straightening (Alloy) | 80 | Per wheel
+Wheel Powder Coating | 400 | Set of 4 (Standard colors)
+Seasonal Tire Storage | 50 | 6 months
+Nitrogen Tire Fill | 20 | Set of 4
+
+# --- BRAKE SYSTEM (General) ---
+Brake Fluid Flush | 75 | Includes DOT4/DOT5.1
+Brake Master Cylinder | 220 | Labor + Fluid
+Brake Hose Replacement | 85 | Per hose
+ABS Module Repair | 350+ | Subject to electronic fault
+Handbrake Adjustment | 45 | Manual cables
+Handbrake Shoe Replacement | 110 | Rear drum-in-disc
+Electronic Parking Brake Reset | 40 |
+
+# --- CLIMATE CONTROL (HVAC) ---
+AC Recharge (R134a) | 85 | Up to 500g
+AC Recharge (R1234yf) | 190 | New gas standard
+AC Leak Detection (Dye) | 55 |
+AC Leak Detection (Nitrogen) | 75 |
+AC Evaporator Cleaning | 60 | Anti-bacterial treatment
+AC Condenser Replacement | 350 | Includes recharge
+Heater Core Flush | 95 |
+Blower Motor Replacement | 210 |
+Cabin Temperature Sensor | 85 |
+
+# --- DETAILING & BODY CARE ---
 Car wash basic | 10 | exterior only
 Car wash premium | 18 | exterior + interior
-Interior detailing | 80-120 | depends on size
+Interior detailing | 90 | Deep clean seats/carpets
+Engine bay cleaning | 50 | Steam clean + dressing
+Headlight Restoration | 75 | Pair, includes UV lacquer
+Ceramic Coating (Small) | 450 | 2-year warranty
+Ceramic Coating (SUV/Large) | 750 | 3-year warranty
+Paintless Dent Repair | 60 | Per small panel
+Leather Seat Conditioning | 70 | Full interior
+Pet Hair Removal | 35 | Surcharge
+Ozone Odor Removal | 45 | 1-hour treatment
+Convertible Top Waterproofing | 110 |
+
+# --- MISCELLANEOUS ---
+Windshield Chip Repair | 50 | First chip
+Windshield Wiper Motor | 180 |
+Horn Replacement | 65 |
+Bulb Replacement (Halogen) | 15 | Per bulb
+Bulb Replacement (Xenon/HID) | 95 | Per bulb
+Bulb Replacement (LED Module) | 150+ | OEM only
+Towing (City Limits) | 65 |
+Towing (Island-wide) | 150 |
+Storage Fee (Daily) | 25 | After 48h of completion
+Eco-Waste Disposal Fee | 5 | Applied to all oil/tire jobs

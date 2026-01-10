@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 
 export type Chunk = {
   tenantId: string;
@@ -124,35 +123,46 @@ export function parseTxtToChunks(txt: string, opts: ParseOptions): Chunk[] {
 function paragraphPassages(body: string): string[] {
   // Paragraph split on blank lines
   return body
-    .split(/\n\s*\n/g)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    // Optional: collapse internal newlines for better speech context
-    .map((p) => p.replace(/\s*\n\s*/g, ' '));
+      .split(/\n\s*\n/g)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      // Optional: collapse internal newlines for better speech context
+      .map((p) => p.replace(/\s*\n\s*/g, ' '));
 }
 
 function pipeTableToPassages(body: string): string[] {
   const lines = body
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l.length > 0 && !l.startsWith('#'));
+    .filter((l) => l.length > 0);
 
-  // Keep only lines that look like rows
-  const rows = lines.filter((l) => l.includes('|'));
+  let currentCategory = '';
+  const passages: string[] = [];
 
-  // Convert each row to a sentence-like passage so retrieval is easy
-  // Example: "Service: Car wash basic. Price: 10. Notes: exterior only."
-  return rows.map((row) => {
-    const cols = row.split('|').map((c) => c.trim());
-    const [service, price, notes] = cols;
+  for (const line of lines) {
+    // If it's a header line, update the current category context
+    if (line.startsWith('#')) {
+      // Clean up the header (remove # and dashes)
+      currentCategory = line.replace(/^[#\s-]+|[#\s-]+$/g, '');
+      continue;
+    }
 
-    const parts: string[] = [];
-    if (service) parts.push(`Service: ${service}.`);
-    if (price) parts.push(`Price: ${price}.`);
-    if (notes) parts.push(`Notes: ${notes}.`);
+    // If it's a data row
+    if (line.includes('|')) {
+      const cols = line.split('|').map((c) => c.trim());
+      const [service, price, notes] = cols;
 
-    return parts.join(' ');
-  });
+      const parts: string[] = [];
+      // Prepend the category context to the text chunk
+      if (currentCategory) parts.push(`Category: ${currentCategory}.`);
+      if (service) parts.push(`Service: ${service}.`);
+      if (price) parts.push(`Price: ${price}.`);
+      if (notes) parts.push(`Notes: ${notes}.`);
+
+      passages.push(parts.join(' '));
+    }
+  }
+  return passages;
 }
 
 // ---------- Index loading ----------

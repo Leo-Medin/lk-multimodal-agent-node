@@ -10,4 +10,12 @@ email: mail@newautolife.com,
 
 location: Iapetou str. 38, Agios Athanasisos Industrial Area, 4101 Limassol,
 
-services: car wash, car repairs, tires
+services: Full-service automotive center specializing in European (Standard & Premium), Japanese, Korean, Chinese, and American brands. Our services include:
+- Maintenance & Oil Changes
+- Brake Systems & Suspension
+- Electrical & ECU Diagnostics
+- HVAC (Climate Control)
+- Tires, Wheels & 4-Wheel Alignment
+- Professional Detailing & Ceramic Coating
+- Hybrid & EV specialized maintenance
+- Pre-purchase inspections & Roadside assistance

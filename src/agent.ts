@@ -30,13 +30,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('SMTP Connection Error:', error);
-  } else {
-    console.log('SMTP Connection Successful! ' + success);
-  }
-});
+// Remove this or move it inside the bookAppointment tool so it doesn't
+// slow down the initial boot of the idle processes.
+// transporter.verify((error, success) => {
+//   if (error) {
+//     console.error('SMTP Connection Error:', error);
+//   } else {
+//     console.log('SMTP Connection Successful! ' + success);
+//   }
+// });
 
 type Lang = 'en' | 'ru' | 'el' | undefined;
 
@@ -136,8 +138,15 @@ function notFoundMessage(l: Lang) {
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
-    console.log('waiting for participant');
-    const participant = await ctx.waitForParticipant();
+
+    // Find the first human participant already in the room
+    let participant = ctx.room.remoteParticipants.values().next().value;
+
+    if (!participant) {
+      console.log('waiting for participant');
+      participant = await ctx.waitForParticipant();
+    }
+
     console.log(`starting assistant example agent for ${participant.identity}`);
     let lastUserLang: Lang;
 
@@ -178,7 +187,7 @@ export default defineAgent({
             await new Promise((r) => setTimeout(r, 500)); // wait for user query transcription arrive and set the language
           }
           const userLang = lastUserLang; // use session state
-          console.log('lastUserLang:', userLang, 'toolQuery:', query);
+          // console.log('lastUserLang:', userLang, 'toolQuery:', query);
 
           const q = userLang === 'en' ? query : await translateToEnglish(query);
 
@@ -202,7 +211,7 @@ export default defineAgent({
               chunkId: r.chunkId,
             })),
           };
-          console.log('resultToReturn:', resultToReturn);
+          // console.log('resultToReturn:', resultToReturn);
           return JSON.stringify(resultToReturn);
         },
       },
@@ -252,7 +261,6 @@ export default defineAgent({
               Say 'yes' to confirm or 'no' to modify the details.`;
             }
 
-            // console.log('Response before sending:', responseText);
             return responseText;
           } catch (error) {
             console.error('Error in bookAppointment:', error);
@@ -274,10 +282,10 @@ export default defineAgent({
           date: z.string(),
         }),
         execute: async ({ confirmation, name, phone, carModel, year, reason, date }) => {
-          console.log(
-            'confirmAppointment() confirmation.toLowerCase():',
-            confirmation.toLowerCase(),
-          );
+          // console.log(
+          //   'confirmAppointment() confirmation.toLowerCase():',
+          //   confirmation.toLowerCase(),
+          // );
           if (confirmation.toLowerCase() !== 'yes') {
             return 'Please provide the correct details to proceed with your appointment.';
           }
@@ -332,7 +340,7 @@ export default defineAgent({
       if (!transcript) return;
 
       lastUserLang = detectLangFromText(transcript);
-      console.log('lastUserLang updated:', lastUserLang, 'from:', transcript);
+      // console.log('lastUserLang updated:', lastUserLang, 'from:', transcript);
     });
 
     // Clear timer if participant disconnects early
@@ -347,6 +355,7 @@ export default defineAgent({
 cli.runApp(
   new WorkerOptions({
     agent: fileURLToPath(import.meta.url),
+    numIdleProcesses: 1, // to keep one worker alive even if no jobs are queued
   }),
 );
 

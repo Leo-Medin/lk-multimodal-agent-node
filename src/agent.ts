@@ -215,6 +215,23 @@ export default defineAgent({
               chunkId: r.chunkId,
             })),
           };
+
+          const citations = resultToReturn.passages
+            .map((p) => ({
+              source: p.source,
+            }))
+            .filter((obj1, i, arr) => arr.findIndex((obj2) => obj2.source === obj1.source) === i);
+
+          // Send the citations to the frontend via LiveKit Data Channel
+          const encoder = new TextEncoder();
+          const citationData = encoder.encode(
+            JSON.stringify({
+              type: 'citations',
+              citations,
+            }),
+          );
+          ctx.room.localParticipant?.publishData(citationData, { reliable: true });
+
           // console.log('searchDocs result:', resultToReturn);
           return JSON.stringify(resultToReturn);
         },

@@ -302,6 +302,28 @@ export default defineAgent({
 
     const rtSession = await agent.start(ctx.room, participant);
 
+    // --- Session Limit (3 minutes) ---
+    const SESSION_LIMIT_MS = 3 * 60 * 1000;
+    const timer = setTimeout(async () => {
+      console.log('Session limit reached. Disconnecting.');
+      try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(
+          JSON.stringify({ type: 'session_timeout', reason: 'limit_reached' }),
+        );
+        // 1. Notify frontend
+        await ctx.room.localParticipant.publishData(data, { reliable: true });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (e) {
+        console.error('Failed to send timeout notification:', e);
+      } finally {
+        // 2. Stop the session/agent processes first
+        rtSession.removeAllListeners();
+        // 3. Disconnect room
+        await ctx.room.disconnect();
+      }
+    }, SESSION_LIMIT_MS);
+
     rtSession.on('input_speech_transcription_completed', (ev: unknown) => {
       const e = ev as { transcript?: string; itemId?: string }; // narrow to expected shape
       if (!e?.transcript) return;
@@ -311,6 +333,13 @@ export default defineAgent({
 
       lastUserLang = detectLangFromText(transcript);
       console.log('lastUserLang updated:', lastUserLang, 'from:', transcript);
+    });
+
+    // Clear timer if participant disconnects early
+    ctx.room.on('participantDisconnected', (p) => {
+      if (p.identity === participant.identity) {
+        clearTimeout(timer);
+      }
     });
   },
 });

@@ -135,6 +135,27 @@ function notFoundMessage(l: Lang) {
   return "I couldn't find this in the provided documents. Do you want prices, location, opening hours, or services?";
 }
 
+const BASE_INSTRUCTIONS =
+  'You are the voice assistant for Autolife car services.\n' +
+  'Always respond in the language used by the user’s most recent message (English, Greek, or Russian). If the user’s message is in another language, ask them to switch to one of the supported languages.\n' +
+  'Recognize names correctly (e.g., Пётр/Петр, Πέτρος, Peter). \n' +
+  'When user says digits as words, output exact digits. For phone numbers, keep all digits in order; do not drop digits. Do NOT convert local 8-digit numbers to international E.164 format.\n' +
+  'Default to concise answers: 1–2 sentences, under ~15 seconds of speech.\n' +
+  'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
+  'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
+  'If you are not sure, do not guess — ask or use tools.\n' +
+  'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
+  'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.\n' +
+  'When a tool returns "respondIn", you MUST write your final answer in that language. If the retrieved text is in English but the target language is Russian or Greek, you MUST translate the information accurately.';
+
+const model = new openai.realtime.RealtimeModel({
+  instructions: BASE_INSTRUCTIONS,
+  voice: 'alloy',
+  // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
+  model: 'gpt-realtime-mini',
+  maxResponseOutputTokens: 400, // about 15s-20s answer
+});
+
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
@@ -149,27 +170,6 @@ export default defineAgent({
 
     console.log(`starting assistant example agent for ${participant.identity}`);
     let lastUserLang: Lang;
-
-    const BASE_INSTRUCTIONS =
-      'You are the voice assistant for Autolife car services.\n' +
-      'Always respond in the language used by the user’s most recent message (English, Greek, or Russian). If the user’s message is in another language, ask them to switch to one of the supported languages.\n' +
-      'Recognize names correctly (e.g., Пётр/Петр, Πέτρος, Peter). \n' +
-      'When user says digits as words, output exact digits. For phone numbers, keep all digits in order; do not drop digits. Do NOT convert local 8-digit numbers to international E.164 format.\n' +
-      'Default to concise answers: 1–2 sentences, under ~15 seconds of speech.\n' +
-      'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
-      'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
-      'If you are not sure, do not guess — ask or use tools.\n' +
-      'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
-      'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.\n' +
-      'When a tool returns "respondIn", you MUST write your final answer in that language. If the retrieved text is in English but the target language is Russian or Greek, you MUST translate the information accurately.';
-
-    const model = new openai.realtime.RealtimeModel({
-      instructions: BASE_INSTRUCTIONS,
-      voice: 'alloy',
-      // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
-      model: 'gpt-realtime-mini',
-      maxResponseOutputTokens: 400, // about 15s-20s answer
-    });
 
     const fncCtx: llm.FunctionContext = {
       searchDocs: {

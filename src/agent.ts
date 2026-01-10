@@ -324,7 +324,7 @@ export default defineAgent({
           JSON.stringify({ type: 'session_timeout', reason: 'limit_reached' }),
         );
         // 1. Notify frontend
-        await ctx.room.localParticipant.publishData(data, { reliable: true });
+        await ctx.room.localParticipant?.publishData(data, { reliable: true });
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (e) {
         console.error('Failed to send timeout notification:', e);

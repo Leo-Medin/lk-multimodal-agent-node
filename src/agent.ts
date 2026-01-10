@@ -152,7 +152,7 @@ export default defineAgent({
       'If you are not sure, do not guess — ask or use tools.\n' +
       'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
       'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.\n' +
-      'When a tool returns "respondIn", you MUST write your final answer in that language.';
+      'When a tool returns "respondIn", you MUST write your final answer in that language. If the retrieved text is in English but the target language is Russian or Greek, you MUST translate the information accurately.';
 
     const model = new openai.realtime.RealtimeModel({
       instructions: BASE_INSTRUCTIONS,

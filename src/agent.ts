@@ -376,7 +376,7 @@ export default defineAgent({
 cli.runApp(
   new WorkerOptions({
     agent: fileURLToPath(import.meta.url),
-    numIdleProcesses: 1, // to keep one worker alive even if no jobs are queued
+    numIdleProcesses: 1, // to keep one worker alive even if no jobs are queued, for a faster connection
   }),
 );
 
@@ -401,3 +401,13 @@ async function translateToEnglish(text: string): Promise<string> {
   const data = await r.json();
   return data.choices?.[0]?.message?.content?.trim() ?? text;
 }
+
+// setInterval(() => {
+//   const { rss } = process.memoryUsage();
+//   console.log(
+//     JSON.stringify({
+//       pid: process.pid,
+//       rssMB: Math.round(rss / 1024 / 1024),
+//     })
+//   );
+// }, 10000);

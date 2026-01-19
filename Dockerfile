@@ -25,5 +25,4 @@ EXPOSE 8081
 # Start the application
 # CMD ["pnpm", "start"]
 # CMD ["node", "src/agent.js", "start"]
-# below is the command that works
-CMD ["pnpm", "dev"]
+CMD ["node", "dist/agent.js", "start"]

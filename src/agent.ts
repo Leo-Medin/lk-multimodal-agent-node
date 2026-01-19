@@ -10,17 +10,34 @@ import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
 // For email sending
-import { loadTenantTxtKnowledge, searchDocs } from './docSearchLib';
+import { loadTenantTxtKnowledge, searchDocs } from './docSearchLib.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(__dirname, '../.env.local');
+dotenv.config({ path: envPath });
+
+function mustGetEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing required env var: ${name}`);
+  return v;
+}
+
+// check that all env vars are present
+[
+  'LIVEKIT_URL',
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
+  'OPENAI_API_KEY',
+  'EMAIL',
+  'EMAIL_PASS',
+  'OFFICE_EMAIL',
+].forEach(mustGetEnv);
 
 const tenantId = 'autolife'; // MVP
 const index = loadTenantTxtKnowledge({
   tenantId,
   folderPath: process.env.KNOWLEDGE_DIR ?? './knowledge/autolife',
 });
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = path.join(__dirname, '../.env.local');
-dotenv.config({ path: envPath });
 
 const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port

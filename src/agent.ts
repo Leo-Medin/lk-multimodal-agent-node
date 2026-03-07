@@ -9,8 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
-// For email sending
-import { loadTenantTxtKnowledge, searchDocs } from './docSearchLib.js';
+import { loadTenantKBFromFile, searchDocs } from './docSearchLib.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
@@ -33,11 +32,7 @@ function mustGetEnv(name: string): string {
   'OFFICE_EMAIL',
 ].forEach(mustGetEnv);
 
-const tenantId = 'autolife'; // MVP
-const index = loadTenantTxtKnowledge({
-  tenantId,
-  folderPath: process.env.KNOWLEDGE_DIR ?? './knowledge/autolife',
-});
+const index = loadTenantKBFromFile(process.env.KB_JSON_PATH ?? './knowledge/autolife/kb.json');
 
 const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port
@@ -46,16 +41,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
-// Remove this or move it inside the bookAppointment tool so it doesn't
-// slow down the initial boot of the idle processes.
-// transporter.verify((error, success) => {
-//   if (error) {
-//     console.error('SMTP Connection Error:', error);
-//   } else {
-//     console.log('SMTP Connection Successful! ' + success);
-//   }
-// });
 
 type Lang = 'en' | 'ru' | 'el' | undefined;
 

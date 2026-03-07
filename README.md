@@ -32,51 +32,39 @@ node dist/agent.js dev # see agents-js for more info on subcommands
 
 This agent requires a frontend application to communicate with. 
 
-## Temporarily disable Railway and run locally with your Next.js app
+## Knowledge Base (KB) storage contract (AWS S3)
 
-If you have an older version of this backend running on Railway and want your Next.js app to talk to a local instance instead, follow these steps:
+This service **consumes** a published tenant KB from S3 (or any S3-compatible storage).
+KB management/publishing is expected to happen in your Next.js app (control plane).
 
-1. Pause your Railway deployment (temporary)
-   - Web UI: Open your project in Railway → Environments → select the service running this backend → click Pause/Stop.
-   - CLI (optional): If you use the Railway CLI, you can run `railway service pause` from the service directory. Refer to Railway docs for exact syntax per setup.
-   - This prevents the remote instance from consuming events or conflicting with your local instance.
+### Key layout
 
-2. Prepare environment variables locally
-   - Copy `.env.example` to `.env.local` and fill in values for your environment:
-     - `LIVEKIT_URL`
-     - `LIVEKIT_API_KEY`
-     - `LIVEKIT_API_SECRET`
-     - `OPENAI_API_KEY`
-   - These are required for the agent to join your LiveKit server and operate normally.
+All keys are relative to:
 
-3. Start the backend locally
-   ```bash
-   pnpm install
-   pnpm build
-   pnpm start    # or: pnpm dev
-   ```
-   Notes:
-   - This backend is a LiveKit Agent process; it does not expose a traditional REST API. Your frontend connects to LiveKit, and the agent joins the same room to interact.
-   - Make sure your local machine can reach the LiveKit server specified by `LIVEKIT_URL` (cloud or local).
+- `KB_S3_PREFIX` (default: `kb/`)
+- `TENANT_ID` (single-tenant deployment for this agent process)
 
-4. Point your Next.js app to the local setup
-   - In your Next.js app, ensure that any environment variables referencing the “backend” or agent environment are set for local development. For example, in `.env.local` of your Next.js project:
-     ```env
-     # Example variables your Next.js app might use
-     NEXT_PUBLIC_LIVEKIT_URL=http://localhost:7880   # or your cloud URL if you’re not running LiveKit locally
-     NEXT_PUBLIC_ENV=local
-     ```
-   - If your Next.js app previously called an HTTP endpoint on Railway, switch that base URL to `http://localhost:<your_port>` (only if you added custom HTTP endpoints). By default, this repo does not serve HTTP routes.
+Keys:
 
-5. Verify end-to-end
-   - Start your Next.js dev server (`pnpm dev` or `next dev`).
-   - Ensure your app creates/join rooms on the same LiveKit server as the agent.
-   - With the Railway instance paused and the local agent running, the interactions should route through your local backend agent process.
+- Active pointer:
+  - `{prefix}{tenantId}/active.json`
+- Immutable snapshot:
+  - `{prefix}{tenantId}/versions/{versionId}.json`
 
-6. Re-enable Railway when done (optional)
-   - Resume the service in Railway when you want to switch back to the hosted backend.
+At runtime the agent only needs to know “what KB is active”. Instead of overwriting a large JSON file in-place, we:
+1) upload a new immutable snapshot under `versions/`, and then
+2) atomically switch `active.json` to point to it.
 
-## Object storage layout
+Benefits:
+- `active.json` is the only file the agent needs to read first (small & fast)
+- `versions/` gives you rollback for free (just repoint `active.json`)
+- `uploads/` keeps raw user files for audit/reprocessing
+
+### active.json (pointer)
+
+`{ "versionId": "2026-03-07T10:23:00.000Z", "publishedAt": "2026-03-07T10:23:00.000Z" }`
+- `versionId` must match a file in `{prefix}{tenantId}/versions/{versionId}.json`.
+- `publishedAt` is optional metadata (useful for UI/logging).
 
 ```text
 kb/

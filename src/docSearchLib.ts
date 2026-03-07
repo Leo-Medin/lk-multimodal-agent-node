@@ -1,3 +1,4 @@
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -462,5 +463,71 @@ export function loadTenantKBKnowledge(kb: TenantKB): KnowledgeIndex {
 export function loadTenantKBFromFile(filePath: string): KnowledgeIndex {
   const raw = fs.readFileSync(filePath, 'utf8');
   const kb = JSON.parse(raw) as TenantKB;
+  return loadTenantKBKnowledge(kb);
+}
+
+// ─────────────────────────────────────────────
+//  load TenantKB from S3 (per-tenant)
+// ─────────────────────────────────────────────
+
+async function s3BodyToString(body: unknown): Promise<string> {
+  if (!body) return '';
+
+  // AWS SDK v3 in Node typically returns a Readable stream with transformToString available
+  if (typeof body === 'object' && 'transformToString' in body) {
+    const b = body as { transformToString: () => Promise<string> };
+    return await b.transformToString();
+  }
+
+  // Fallback for Readable streams
+  if (typeof body === 'object' && 'on' in body) {
+    const readable = body as NodeJS.ReadableStream;
+    return await new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      readable.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      readable.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      readable.on('error', reject);
+    });
+  }
+
+  // If it ever comes as a Buffer/Uint8Array
+  if (body instanceof Uint8Array) return Buffer.from(body).toString('utf8');
+
+  return String(body);
+}
+
+export async function loadTenantKBFromS3(params: {
+  tenantId: string;
+  bucket: string;
+  key: string;
+  region?: string;
+}): Promise<KnowledgeIndex> {
+  const { tenantId, bucket, key, region } = params;
+
+  const s3 = new S3Client({ region });
+
+  const res = await s3.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    }),
+  );
+
+  const raw = await s3BodyToString(res.Body);
+  if (!raw.trim()) {
+    throw new Error(`[KB] Empty KB object from S3: s3://${bucket}/${key}`);
+  }
+
+  const kb = JSON.parse(raw) as TenantKB;
+
+  // Safety: ensure the loaded file matches the tenant we asked for
+  if (kb.tenantId !== tenantId) {
+    throw new Error(
+      `[KB] Tenant mismatch: requested "${tenantId}" but S3 object contains tenantId "${kb.tenantId}" (s3://${bucket}/${key})`,
+    );
+  }
+
+  console.log(`[KB] Loaded KB for tenant "${tenantId}" from S3: s3://${bucket}/${key}`);
+
   return loadTenantKBKnowledge(kb);
 }

@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
-import { loadTenantKBFromFile, searchDocs } from './docSearchLib.js';
+import { loadTenantKBFromS3, searchDocs } from './docSearchLib.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
@@ -30,9 +30,14 @@ function mustGetEnv(name: string): string {
   'EMAIL',
   'EMAIL_PASS',
   'OFFICE_EMAIL',
+  'TENANT_ID',
+  'KB_S3_BUCKET',
+  'KB_S3_REGION',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
 ].forEach(mustGetEnv);
 
-const index = loadTenantKBFromFile(process.env.KB_JSON_PATH ?? './knowledge/autolife/kb.json');
+// const index = loadTenantKBFromFile(process.env.KB_JSON_PATH ?? './knowledge/autolife/kb.json');
 
 const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port
@@ -165,6 +170,20 @@ const model = new openai.realtime.RealtimeModel({
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
+
+    const tenantId = mustGetEnv('TENANT_ID');
+    const kbBucket = mustGetEnv('KB_S3_BUCKET');
+    const kbRegion = mustGetEnv('KB_S3_REGION');
+
+    // Default convention: s3://<bucket>/knowledge/<tenantId>/kb.json
+    const kbKey = process.env.KB_S3_KEY ?? `kb/${tenantId}/kb.json`;
+
+    const index = await loadTenantKBFromS3({
+      tenantId,
+      bucket: kbBucket,
+      key: kbKey,
+      region: kbRegion,
+    });
 
     // Find the first human participant already in the room
     let participant = ctx.room.remoteParticipants.values().next().value;

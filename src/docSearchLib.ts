@@ -1,6 +1,5 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 import type {
   BrandGroup,
@@ -182,29 +181,6 @@ function pipeTableToPassages(body: string): string[] {
 }
 
 // ---------- Index loading ----------
-
-export function loadTenantTxtKnowledge(params: {
-  tenantId: string;
-  folderPath: string;
-}): KnowledgeIndex {
-  const { tenantId, folderPath } = params;
-
-  const files = fs
-    .readdirSync(folderPath, { withFileTypes: true })
-    .filter((d) => d.isFile() && d.name.toLowerCase().endsWith('.txt'))
-    .map((d) => d.name);
-
-  const chunks: Chunk[] = [];
-  for (const file of files) {
-    console.log('processing file:', file);
-    const full = path.join(folderPath, file);
-    const txt = fs.readFileSync(full, 'utf8');
-    chunks.push(...parseTxtToChunks(txt, { tenantId, sourceFile: full }));
-  }
-  // console.log('chunks:', chunks);
-
-  return { tenantId, chunks };
-}
 
 // ---------- Search ----------
 
@@ -453,17 +429,6 @@ export function loadTenantKBKnowledge(kb: TenantKB): KnowledgeIndex {
 
   console.log(`[KB] Loaded ${chunks.length} chunks for tenant "${tenantId}" v${kb.version}`);
   return { tenantId, chunks };
-}
-
-// ─────────────────────────────────────────────
-//  Convenience: load TenantKB from a local JSON file
-//  (useful for local dev before object storage is wired up)
-// ─────────────────────────────────────────────
-
-export function loadTenantKBFromFile(filePath: string): KnowledgeIndex {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const kb = JSON.parse(raw) as TenantKB;
-  return loadTenantKBKnowledge(kb);
 }
 
 // ─────────────────────────────────────────────

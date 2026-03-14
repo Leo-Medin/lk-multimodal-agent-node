@@ -37,8 +37,6 @@ function mustGetEnv(name: string): string {
   'AWS_SECRET_ACCESS_KEY',
 ].forEach(mustGetEnv);
 
-// const index = loadTenantKBFromFile(process.env.KB_JSON_PATH ?? './knowledge/autolife/kb.json');
-
 const transporter = nodemailer.createTransport({
   service: 'Yandex', // This automatically sets the right host and port
   auth: {

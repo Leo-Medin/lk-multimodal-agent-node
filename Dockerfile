@@ -1,28 +1,21 @@
-# Use an official Node.js runtime as a parent image
-FROM node:18
+FROM node:20-slim AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Install pnpm globally
 RUN npm install -g pnpm
 
-# Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile
 
-# Copy the rest of the application files
 COPY . .
+RUN pnpm build && pnpm prune --prod
 
-# Build the TypeScript code
-RUN pnpm build
+FROM node:20-slim
 
-# Expose the health check port (optional)
-EXPOSE 8081
+WORKDIR /app
 
-# Start the application
-# CMD ["pnpm", "start"]
-# CMD ["node", "src/agent.js", "start"]
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
+
 CMD ["node", "dist/agent.js", "start"]

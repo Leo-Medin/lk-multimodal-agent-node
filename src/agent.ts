@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2024 LiveKit, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
-import type { llm } from '@livekit/agents';
-import { type JobContext, WorkerOptions, cli, defineAgent, multimodal } from '@livekit/agents';
+import { type JobContext, WorkerOptions, cli, defineAgent, llm, multimodal } from '@livekit/agents';
 import * as openai from '@livekit/agents-plugin-openai';
 import dotenv from 'dotenv';
 import path from 'node:path';
@@ -349,6 +348,24 @@ export default defineAgent({
     const agent = new multimodal.MultimodalAgent({ model, fncCtx });
 
     const rtSession = await agent.start(ctx.room, participant);
+
+    ctx.room.on('dataReceived', (payload: Uint8Array) => {
+      try {
+        const data = JSON.parse(new TextDecoder().decode(payload)) as {
+          type?: string;
+          text?: string;
+        };
+        if (data.type !== 'text_input' || !data.text?.trim()) return;
+        const text = data.text.trim();
+        console.log(`[Agent] Text input: "${text}"`);
+        const message = llm.ChatMessage.create({ role: llm.ChatRole.USER, text });
+        rtSession.conversation.item.create(message);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rtSession as any).response.create();
+      } catch (e) {
+        console.error('[Agent] Failed to process text input:', e);
+      }
+    });
 
     // --- Session Limit (3 minutes) ---
     const SESSION_LIMIT_MS = 3 * 60 * 1000;

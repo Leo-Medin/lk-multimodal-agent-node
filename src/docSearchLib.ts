@@ -496,3 +496,22 @@ export async function loadTenantKBFromS3(params: {
 
   return loadTenantKBKnowledge(kb);
 }
+
+export async function loadTenantConfigFromS3(params: {
+  tenantId: string;
+  bucket: string;
+  region?: string;
+}): Promise<{ instructions: string; officeEmail: string }> {
+  const { tenantId, bucket, region } = params;
+  const s3 = new S3Client({ region });
+  const key = `kb/${tenantId}/config.json`;
+
+  const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const raw = await s3BodyToString(res.Body);
+  if (!raw.trim()) {
+    throw new Error(`[KB] Empty config object from S3: s3://${bucket}/${key}`);
+  }
+
+  console.log(`[KB] Loaded config for tenant "${tenantId}" from S3`);
+  return JSON.parse(raw) as { instructions: string; officeEmail: string };
+}

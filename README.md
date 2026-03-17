@@ -1,77 +1,125 @@
-# Voice assistant with OpenAI agent and enabled web search (backend).
+# lk-multimodal-agent-node
 
-Based example of a multimodal voice agent using LiveKit and the Node.js [Agents Framework](https://github.com/livekit/agents-js).
+Multi-tenant voice assistant backend built on [LiveKit Agents](https://github.com/livekit/agents-js) and the OpenAI Realtime API.
+
+Each tenant gets their own Knowledge Base and AI configuration stored in AWS S3. The agent loads per-tenant config and KB at session start — no restarts needed when content changes.
+
+## Stack
+
+- **LiveKit Agents** (Node.js) — real-time voice session management
+- **OpenAI Realtime API** — speech-to-speech with function calling
+- **AWS S3** — KB and tenant config storage
+- **Nodemailer** — appointment email delivery
 
 ## Dev Setup
 
-Clone the repository and install dependencies:
-
 ```bash
 pnpm install
+cp .env.example .env.local
 ```
 
-Set up the environment by copying `.env.example` to `.env.local` and filling in the required values:
+Fill in `.env.local`:
 
-- `LIVEKIT_URL`
-- `LIVEKIT_API_KEY`
-- `LIVEKIT_API_SECRET`
-- `OPENAI_API_KEY`
+```env
+LIVEKIT_URL=
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+OPENAI_API_KEY=
 
-You can also do this automatically using the LiveKit CLI:
+EMAIL=
+EMAIL_PASS=
 
-```bash
-lk app env
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+KB_S3_BUCKET=your-bucket-name
+KB_S3_REGION=eu-central-1
 ```
 
-To run the agent, first build the TypeScript project, then execute the output with the `dev` or `start` commands:
-    
 ```bash
 pnpm build
-node dist/agent.js dev # see agents-js for more info on subcommands
+node dist/agent.js dev
 ```
 
-This agent requires a frontend application to communicate with. 
+This agent requires a frontend application to communicate with.
 
-## Knowledge Base (KB) storage contract (AWS S3)
+## Multi-tenant design
 
-This service **consumes** a published tenant KB from S3 (or any S3-compatible storage).
-KB management/publishing is expected to happen in your Next.js app (control plane).
+The room name encodes the tenant: `{tenantId}-room-{random}` (e.g. `autolife-room-1234`). At session start the agent:
 
-### Key layout
+1. Extracts `tenantId` from the room name.
+2. Loads `kb/{tenantId}/config.json` from S3 → AI instructions + office email.
+3. Loads `kb/{tenantId}/kb.json` from S3 → Knowledge Base (company info, hours, services, prices, FAQ).
 
-All keys are relative to:
+AI instructions and office email are fully configurable per tenant via the `lk-kb-admin` Settings page — no code changes needed.
 
-- `KB_S3_PREFIX` (default: `kb/`)
-- `TENANT_ID` (single-tenant deployment for this agent process)
+## S3 layout
 
-Keys:
+```
+tenants/
+  registry.json                    ← tenant credentials (managed by lk-kb-admin)
 
-- Active pointer:
-  - `{prefix}{tenantId}/active.json`
-- Immutable snapshot:
-  - `{prefix}{tenantId}/versions/{versionId}.json`
-
-At runtime the agent only needs to know “what KB is active”. Instead of overwriting a large JSON file in-place, we:
-1) upload a new immutable snapshot under `versions/`, and then
-2) atomically switch `active.json` to point to it.
-
-Benefits:
-- `active.json` is the only file the agent needs to read first (small & fast)
-- `versions/` gives you rollback for free (just repoint `active.json`)
-- `uploads/` keeps raw user files for audit/reprocessing
-
-### active.json (pointer)
-
-`{ "versionId": "2026-03-07T10:23:00.000Z", "publishedAt": "2026-03-07T10:23:00.000Z" }`
-- `versionId` must match a file in `{prefix}{tenantId}/versions/{versionId}.json`.
-- `publishedAt` is optional metadata (useful for UI/logging).
-
-```text
 kb/
   {tenantId}/
-    active.json              ← pointer: { versionId, publishedAt }
+    kb.json                        ← active Knowledge Base (TenantKB)
+    config.json                    ← {instructions, officeEmail}
     versions/
-      {ISO-timestamp}.json   ← full TenantKB snapshot
-    uploads/
-      {ISO-timestamp}-{filename}  ← raw CSV upload (if any)
+      {unix-ms}.json               ← auto-saved backups (managed by lk-kb-admin)
+    excel-uploads/
+      {unix-ms}.xlsx               ← raw Excel uploads (managed by lk-kb-admin)
 ```
+
+### kb.json
+
+Full `TenantKB` object — company info, hours, services, brand groups, prices, FAQ. Published by `lk-kb-admin`.
+
+### config.json
+
+```json
+{
+  "instructions": "You are the voice assistant for ...",
+  "officeEmail": "office@example.com"
+}
+```
+
+`instructions` is used as the OpenAI Realtime system prompt. `officeEmail` is the recipient for appointment confirmation emails.
+
+## Agent capabilities
+
+### `searchDocs`
+
+Searches the in-memory Knowledge Index built from the tenant's KB. Supports:
+- BM25-style TF-IDF scoring with title boost and exact phrase bonus
+- Brand group-aware scoring (penalises irrelevant brand context chunks)
+- Automatic translation of non-English queries to English before search
+
+Results are returned as ranked passages with source citations, which are also forwarded to the frontend via the LiveKit data channel.
+
+### `bookAppointment`
+
+Collects appointment details step by step (name, phone, car model, year, reason, preferred date). Validates Cyprus local (8-digit) and E.164 international phone numbers. Reads details back for user confirmation.
+
+### `confirmAppointment`
+
+On user confirmation, sends an appointment email via Nodemailer to the tenant's `officeEmail` from S3 config.
+
+## Session behaviour
+
+- Tenant resolved from room name prefix before the participant joins.
+- KB and config loaded from S3 once per session; no polling.
+- Language detection from user speech (English / Greek / Russian); non-English queries translated to English for KB search.
+
+### Session termination
+
+Sessions are normally ended by the **frontend** on inactivity:
+
+| Mode | Frontend inactivity timeout |
+|---|---|
+| Voice | 15 seconds of silence |
+| Text | 5 minutes of no input |
+
+The **backend** enforces a hard 3-minute cap as a fallback for voice sessions — in case the frontend fails to disconnect (network drop, browser crash, etc.). On expiry, the agent notifies the frontend via the LiveKit data channel (`{ type: "session_timeout" }`) before disconnecting.
+
+## Related projects
+
+- `lk-kb-admin` — admin UI for managing KB and tenant config in S3
+- `lk-voice-assistant-frontend` — consumer-facing voice UI

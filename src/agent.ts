@@ -8,7 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
-import { loadTenantKBFromS3, searchDocs } from './docSearchLib.js';
+import { loadTenantConfigFromS3, loadTenantKBFromS3, searchDocs } from './docSearchLib.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, '../.env.local');
@@ -28,8 +28,6 @@ function mustGetEnv(name: string): string {
   'OPENAI_API_KEY',
   'EMAIL',
   'EMAIL_PASS',
-  'OFFICE_EMAIL',
-  'TENANT_ID',
   'KB_S3_BUCKET',
   'KB_S3_REGION',
   'AWS_ACCESS_KEY_ID',
@@ -139,48 +137,35 @@ function notFoundMessage(l: Lang) {
   return "I couldn't find this in the provided documents. Do you want prices, location, opening hours, or services?";
 }
 
-const BASE_INSTRUCTIONS =
-  'You are the voice assistant for Autolife car services.\n' +
-  'Always respond in the language used by the user’s most recent message (English, Greek, or Russian). If the user’s message is in another language, ask them to switch to one of the supported languages.\n' +
-  'Recognize names correctly (e.g., Пётр/Петр, Πέτρος, Peter). \n' +
-  'When user says digits as words, output exact digits. For phone numbers, keep all digits in order; do not drop digits. Do NOT convert local 8-digit numbers to international E.164 format.\n' +
-  // 'Default to concise answers: 1–2 sentences, under ~15 seconds of speech. If your answer is longer than 20 words, cut it and ask user if they want to know more.\n' +
-  'VERBAL RESPONSE RULES:\n' +
-  '- Be extremely concise: 1–2 sentences max.\n' +
-  '- If the answer involves a long list, summarize it in under 20 words and ask if the user wants more details.\n' +
-  '- Do NOT apply these length constraints to tool calls; only to your final speech.\n' +
-  'If the user’s request is broad or would take longer, ask one clarifying question first.\n' +
-  'Only give long explanations when the user explicitly asks for more detail (“tell me more”, “details”, “explain”).\n' +
-  'If you are not sure, do not guess — ask or use tools.\n' +
-  'Use searchDocs for any questions about services, pricing, hours, location, policies. If not found, ask one clarifying question.\n' +
-  'When answering, use only the retrieved passages. If passages don’t contain the answer, ask one clarifying question or say it’s not in the docs.\n' +
-  'When a tool returns "respondIn", you MUST write your final answer in that language. If the retrieved text is in English but the target language is Russian or Greek, you MUST translate the information accurately.';
-
-const model = new openai.realtime.RealtimeModel({
-  instructions: BASE_INSTRUCTIONS,
-  voice: 'alloy',
-  // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
-  model: 'gpt-realtime-mini',
-  maxResponseOutputTokens: 500, // about 30s answer
-});
-
 export default defineAgent({
   entry: async (ctx: JobContext) => {
-    await ctx.connect();
-
-    const tenantId = mustGetEnv('TENANT_ID');
-    const kbBucket = mustGetEnv('KB_S3_BUCKET');
-    const kbRegion = mustGetEnv('KB_S3_REGION');
-
-    // Default convention: s3://<bucket>/knowledge/<tenantId>/kb.json
-    const kbKey = process.env.KB_S3_KEY ?? `kb/${tenantId}/kb.json`;
+    // Resolve tenant from room name: “autolife-room-1234” → “autolife”
+    // ctx.job.room?.name is available before ctx.connect(); ctx.room.name is only set after connect()
+    const roomName = ctx.job.room?.name ?? ctx.room.name;
+    if (!roomName) throw new Error('Could not resolve room name from job context');
+    const tenantId = roomName.split('-room-')[0];
+    const tenantCfg = await loadTenantConfigFromS3({
+      tenantId,
+      bucket: mustGetEnv('KB_S3_BUCKET'),
+      region: mustGetEnv('KB_S3_REGION'),
+    });
 
     const index = await loadTenantKBFromS3({
       tenantId,
-      bucket: kbBucket,
-      key: kbKey,
-      region: kbRegion,
+      bucket: mustGetEnv('KB_S3_BUCKET'),
+      key: `kb/${tenantId}/kb.json`,
+      region: mustGetEnv('KB_S3_REGION'),
     });
+
+    const model = new openai.realtime.RealtimeModel({
+      instructions: tenantCfg.instructions,
+      voice: 'alloy',
+      // model: 'gpt-4o-mini-realtime-preview-2024-12-17', // instead of default gpt-4o model for cost savings
+      model: 'gpt-realtime-mini',
+      maxResponseOutputTokens: 500, // about 30s answer
+    });
+
+    await ctx.connect();
 
     // Find the first human participant already in the room
     let participant = ctx.room.remoteParticipants.values().next().value;
@@ -334,8 +319,8 @@ export default defineAgent({
 
           const mailOptions = {
             from: process.env.EMAIL,
-            to: process.env.OFFICE_EMAIL,
-            subject: 'New Car Service Appointment',
+            to: tenantCfg.officeEmail,
+            subject: 'New Appointment Request',
             text: `New appointment request:\n\nName: ${name}\nPhone: ${formatPhoneForSpeech(phone)}\nCar Model: ${carModel} (${year})\nReason: ${reason}\nPreferred Date: ${date}`,
           };
 
